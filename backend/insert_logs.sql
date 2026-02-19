@@ -1,0 +1,1 @@
+INSERT INTO system_logs (message, level, source) VALUES ('Admin Dashboard Backend Initialized', 'SUCCESS', 'System'), ('Database migration verified', 'INFO', 'Database'), ('Platform monitoring active', 'INFO', 'Monitor'); 

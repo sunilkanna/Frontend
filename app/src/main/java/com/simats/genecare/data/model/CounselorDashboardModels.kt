@@ -12,12 +12,12 @@ data class CounselorAppointmentData(
     @SerializedName("appointment_date") val date: String,
     @SerializedName("time_slot") val time: String,
     @SerializedName("status") val status: String,
-    @SerializedName("patient_name") val patientName: String,
-    @SerializedName("type") val type: String,
-    @SerializedName("reason") val reason: String,
-    @SerializedName("image_initial") val imageInitial: String,
+    @SerializedName("patient_name") val patientName: String?,
+    @SerializedName("type") val type: String?,
+    @SerializedName("reason") val reason: String?,
+    @SerializedName("image_initial") val imageInitial: String?,
     @SerializedName("image_color_hex") val imageColorHex: String?,
-    @SerializedName("has_report") val hasReport: Boolean
+    @SerializedName("has_report") val hasReport: Boolean?
 )
 
 

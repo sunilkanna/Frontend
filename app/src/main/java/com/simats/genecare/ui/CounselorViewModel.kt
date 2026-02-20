@@ -282,6 +282,8 @@ class CounselorViewModel : ViewModel() {
         fetchAllCounselors()
     }
 
+
+
     fun fetchCounselorAppointments() {
         val currentId = _currentCounselorId.value.toIntOrNull() ?: 1
         viewModelScope.launch {
@@ -291,19 +293,19 @@ class CounselorViewModel : ViewModel() {
                 val response = authRepository.getCounselorAppointments(currentId)
                 if (response.isSuccessful && response.body()?.status == "success") {
                     val appointments = response.body()?.appointments ?: emptyList()
-                    _sessionRequests.value = appointments
-                        .filter { it.status == "Pending" } // Only show Pending requests
-                        .map {
+                    val filtered = appointments.filter { it.status.equals("Pending", ignoreCase = true) }
+                    
+                    _sessionRequests.value = filtered.map {
                         SessionRequest(
                             id = it.id,
-                            name = it.patientName,
-                            type = it.type,
+                            name = it.patientName ?: "Unknown Patient",
+                            type = it.type ?: "Consultation",
                             date = it.date,
                             time = it.time,
-                            reason = it.reason,
-                            imageInitial = it.imageInitial,
+                            reason = it.reason ?: "Routine Checkup",
+                            imageInitial = it.imageInitial ?: "?",
                             imageColor = try { Color(android.graphics.Color.parseColor(it.imageColorHex ?: "#FFCC80")) } catch(e:Exception) { Color(0xFFFFCC80) },
-                            hasReport = it.hasReport
+                            hasReport = it.hasReport ?: false
                         )
                     }
                 }

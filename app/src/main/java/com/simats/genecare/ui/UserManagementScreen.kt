@@ -34,7 +34,12 @@ import com.simats.genecare.ui.theme.GenecareTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun UserManagementScreen(navController: NavController) {
+fun UserManagementScreen(navController: NavController, roleFilter: String = "all") {
+    val screenTitle = when (roleFilter) {
+        "Counselor" -> "Active Counselors"
+        "Patient" -> "Patient List"
+        else -> "User Management"
+    }
     var searchQuery by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
     var isLoading by remember { mutableStateOf(false) }
@@ -100,7 +105,7 @@ fun UserManagementScreen(navController: NavController) {
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("User Management", fontWeight = FontWeight.Bold) },
+                title = { Text(screenTitle, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -141,9 +146,11 @@ fun UserManagementScreen(navController: NavController) {
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(users.filter { 
-                        it.name.contains(searchQuery, ignoreCase = true) || 
-                        it.email.contains(searchQuery, ignoreCase = true) 
+                    items(users.filter { user ->
+                        val matchesSearch = user.name.contains(searchQuery, ignoreCase = true) || 
+                            user.email.contains(searchQuery, ignoreCase = true)
+                        val matchesRole = roleFilter == "all" || user.role == roleFilter
+                        matchesSearch && matchesRole
                     }) { user ->
                         UserCard(user = user, onDelete = { 
                             userToDelete = user

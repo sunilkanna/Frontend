@@ -211,7 +211,7 @@ class BookingViewModel(
         }
     }
 
-    fun confirmBooking() {
+    fun confirmBooking(context: android.content.Context) {
         val state = _uiState.value
         if (state.selectedCounselor != null && state.selectedTime != null) {
             // Validate date is not in the past
@@ -228,20 +228,69 @@ class BookingViewModel(
             }
 
             viewModelScope.launch {
+                _uiState.value = _uiState.value.copy(isLoading = true)
+                var finalReportUrl = state.uploadedReportUri
+
+                // If it's a local URI, upload it first
+                if (finalReportUrl != null && finalReportUrl.startsWith("content://")) {
+                    try {
+                        val file = getFileFromUri(context, android.net.Uri.parse(finalReportUrl))
+                        if (file != null) {
+                            val patientId = com.simats.genecare.data.UserSession.getUserId() ?: 1
+                            val authRepo = com.simats.genecare.data.repository.AuthRepository()
+                            val uploadResponse = authRepo.uploadReport(patientId, file)
+                            
+                            if (uploadResponse.isSuccessful && uploadResponse.body()?.status == "success") {
+                                finalReportUrl = uploadResponse.body()?.fileUrl
+                            } else {
+                                _uiState.value = _uiState.value.copy(
+                                    isLoading = false,
+                                    errorMessage = "Failed to upload report: ${uploadResponse.body()?.message ?: "Unknown error"}"
+                                )
+                                return@launch
+                            }
+                        }
+                    } catch (e: Exception) {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            errorMessage = "Error preparing report: ${e.localizedMessage}"
+                        )
+                        return@launch
+                    }
+                }
+
                 val appointmentId = repository.bookSession(
                     counselorId = state.selectedCounselor.id,
                     date = "${state.monthName} ${state.selectedDate}, ${state.currentYear}",
                     time = state.selectedTime,
-                    reportUrl = state.uploadedReportUri
+                    reportUrl = finalReportUrl
                 )
+                
                 _uiState.value = _uiState.value.copy(
                     isBookingConfirmed = true,
                     lastBookedAppointmentId = appointmentId,
                     appointmentStatus = "Pending",
                     isSessionApproved = false,
-                    errorMessage = null
+                    errorMessage = null,
+                    isLoading = false
                 )
             }
+        }
+    }
+
+    private fun getFileFromUri(context: android.content.Context, uri: android.net.Uri): java.io.File? {
+        val contentResolver = context.contentResolver
+        val fileName = "upload_${System.currentTimeMillis()}.pdf"
+        val tempFile = java.io.File(context.cacheDir, fileName)
+        return try {
+            contentResolver.openInputStream(uri)?.use { input ->
+                java.io.FileOutputStream(tempFile).use { output ->
+                    input.copyTo(output)
+                }
+            }
+            tempFile
+        } catch (e: Exception) {
+            null
         }
     }
 

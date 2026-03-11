@@ -20,3 +20,7 @@ data class NotificationData(
 data class MarkReadRequest(
     @SerializedName("notification_id") val notificationId: Int
 )
+
+data class DeleteNotificationRequest(
+    @SerializedName("notification_id") val notificationId: Int
+)

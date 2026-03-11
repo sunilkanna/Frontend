@@ -56,11 +56,7 @@ fun PatientListScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
-                actions = {
-                    IconButton(onClick = { /* Filter Logic */ }) {
-                        Icon(Icons.Default.FilterList, contentDescription = "Filter", tint = Color.White)
-                    }
-                },
+                actions = {},
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent
                 ),

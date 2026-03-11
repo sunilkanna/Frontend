@@ -99,6 +99,17 @@ try {
         }
     }
 
+    // Fetch patient reports
+    $report_stmt = $conn->prepare("SELECT file_name, file_url, uploaded_at FROM patient_reports WHERE patient_id = ? ORDER BY uploaded_at DESC");
+    $report_stmt->bind_param("i", $appointment['patient_id']);
+    $report_stmt->execute();
+    $report_result = $report_stmt->get_result();
+    $reports = [];
+    while ($row = $report_result->fetch_assoc()) {
+        $reports[] = $row;
+    }
+    $report_stmt->close();
+
     echo json_encode([
         "status" => "success",
         "message" => "Session started",
@@ -110,7 +121,8 @@ try {
         "counselor_name" => $appointment['counselor_name'],
         "appointment_date" => $appointment['appointment_date'],
         "time_slot" => $appointment['time_slot'],
-        "medical_report_url" => $appointment['medical_report_url']
+        "medical_report_url" => $appointment['medical_report_url'],
+        "patient_reports" => $reports
     ]);
 
 } catch (Throwable $e) {

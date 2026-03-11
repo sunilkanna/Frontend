@@ -10,6 +10,9 @@ $dob = trim($_POST['date_of_birth'] ?? $data['date_of_birth'] ?? '');
 $gender = trim($_POST['gender'] ?? $data['gender'] ?? '');
 $phone = preg_replace('/[^0-9]/', '', $_POST['phone'] ?? $data['phone'] ?? ''); // Remove non-numeric
 $address = trim($_POST['address'] ?? $data['address'] ?? '');
+$height = trim($_POST['height'] ?? $data['height'] ?? '');
+$weight = trim($_POST['weight'] ?? $data['weight'] ?? '');
+$blood_type = trim($_POST['blood_type'] ?? $data['blood_type'] ?? '');
 
 if (empty($user_id)) {
     echo json_encode(["status" => "error", "message" => "User ID is required"]);
@@ -22,8 +25,8 @@ if (!empty($dob) && strtotime($dob) > time()) {
     exit();
 }
 
-if (!empty($phone) && (strlen($phone) < 10 || strlen($phone) > 15)) {
-    echo json_encode(["status" => "error", "message" => "Invalid phone number format"]);
+if (!empty($phone) && strlen($phone) != 10) {
+    echo json_encode(["status" => "error", "message" => "Phone number must be exactly 10 digits"]);
     exit();
 }
 
@@ -40,10 +43,13 @@ try {
     }
 
     // 2. Insert/Update fields in 'patient_profiles' table
-    $stmt2 = $conn->prepare("INSERT INTO patient_profiles (user_id, date_of_birth, gender, phone, address) 
-                            VALUES (?, ?, ?, ?, ?)
-                            ON DUPLICATE KEY UPDATE date_of_birth=?, gender=?, phone=?, address=?");
-    $stmt2->bind_param("issssssss", $user_id, $dob, $gender, $phone, $address, $dob, $gender, $phone, $address);
+    $stmt2 = $conn->prepare("INSERT INTO patient_profiles (user_id, date_of_birth, gender, phone, address, height, weight, blood_type) 
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                            ON DUPLICATE KEY UPDATE date_of_birth=?, gender=?, phone=?, address=?, height=?, weight=?, blood_type=?");
+    $stmt2->bind_param("issssssssssssss", 
+        $user_id, $dob, $gender, $phone, $address, $height, $weight, $blood_type,
+        $dob, $gender, $phone, $address, $height, $weight, $blood_type
+    );
     $stmt2->execute();
     $stmt2->close();
 

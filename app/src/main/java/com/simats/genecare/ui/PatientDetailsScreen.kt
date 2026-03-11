@@ -34,6 +34,8 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.simats.genecare.ui.theme.GenecareTheme
 
+import com.simats.genecare.data.UserSession
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PatientDetailsScreen(
@@ -42,6 +44,8 @@ fun PatientDetailsScreen(
     viewModel: PatientDetailsViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val currentUserId = UserSession.getUserId()?.toString()
+    val isOwnProfile = patientId == currentUserId
 
     LaunchedEffect(key1 = patientId) {
         viewModel.loadPatient(patientId)
@@ -59,18 +63,17 @@ fun PatientDetailsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Patient Profile", fontWeight = FontWeight.Bold, color = Color.White) },
+                title = { Text(if (isOwnProfile) "My Profile" else "Patient Profile", fontWeight = FontWeight.Bold, color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* Edit Logic */ }) {
-                        Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.White)
-                    }
-                    IconButton(onClick = { /* Menu Logic */ }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "More", tint = Color.White)
+                    if (isOwnProfile) {
+                        IconButton(onClick = { navController.navigate("patient_edit_profile") }) {
+                            Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.White)
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -83,22 +86,30 @@ fun PatientDetailsScreen(
                 )
             )
         },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { launcher.launch("*/*") },
-                containerColor = Color(0xFF00ACC1),
-                contentColor = Color.White
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Upload Report")
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Upload Report")
-            }
-        },
+
         containerColor = Color(0xFFF5F7FA)
     ) { padding ->
         if (uiState.isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = Color(0xFF009688))
+            }
+        } else if (uiState.errorMessage != null) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = uiState.errorMessage!!,
+                        color = Color.Red,
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.padding(16.dp),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                    Button(
+                        onClick = { viewModel.loadPatient(patientId) },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF009688))
+                    ) {
+                        Text("Retry", color = Color.White)
+                    }
+                }
             }
         } else {
             uiState.patient?.let { patient ->
@@ -114,11 +125,13 @@ fun PatientDetailsScreen(
                         ProfileHeaderCard(patient)
                     }
 
-                    // Quick Actions
-                    item {
-                        ActionButtonsRow(onMessageClick = {
-                            navController.navigate("chat/${patient.id}/${patient.name}")
-                        })
+                    // Quick Actions (Only for counselors viewing patients)
+                    if (!isOwnProfile) {
+                        item {
+                            ActionButtonsRow(onMessageClick = {
+                                navController.navigate("chat/${patient.id}/${patient.name}")
+                            })
+                        }
                     }
 
                     // Genetic Risk Summary
@@ -143,6 +156,8 @@ fun PatientDetailsScreen(
                         }
                     }
                 }
+            } ?: Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("No data available for this profile", color = Color.Gray)
             }
         }
     }
@@ -233,23 +248,13 @@ fun ActionButtonsRow(onMessageClick: () -> Unit) {
     ) {
         Button(
             onClick = onMessageClick,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00ACC1)),
             shape = RoundedCornerShape(12.dp)
         ) {
             Icon(Icons.Default.ChatBubble, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.width(8.dp))
             Text("Message")
-        }
-        Button(
-            onClick = { /* Call */ },
-            modifier = Modifier.weight(1f),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF26A69A)), // Slightly different teal
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Icon(Icons.Default.Call, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Call")
         }
     }
 }

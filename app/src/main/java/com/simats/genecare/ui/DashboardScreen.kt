@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.FavoriteBorder
@@ -35,6 +36,8 @@ import androidx.compose.ui.text.style.TextOverflow
 
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.*
+import android.app.Activity
+import androidx.activity.compose.BackHandler
 
 @Composable
 fun DashboardScreen(
@@ -45,6 +48,10 @@ fun DashboardScreen(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     val user = UserSession.getUser()
+
+    BackHandler {
+        (context as? Activity)?.finish()
+    }
 
     Scaffold(
         containerColor = Color(0xFFF5F7FA) // Light grey background
@@ -377,12 +384,15 @@ fun QuickActionsGrid(
             )
             Spacer(modifier = Modifier.width(16.dp))
             QuickActionItem(
-                icon = Icons.Outlined.FavoriteBorder,
-                label = "My Results",
+                icon = Icons.Default.Person,
+                label = "Patient Profile",
                 color = Color(0xFFFFA000), // Amber
                 backgroundColor = Color(0xFFFFF8E1),
                 modifier = Modifier.weight(1f),
-                onClick = { navController.navigate("my_results") }
+                onClick = { 
+                    val currentUserId = UserSession.getUserId() ?: 0
+                    navController.navigate("patient_details/$currentUserId") 
+                }
             )
         }
     }

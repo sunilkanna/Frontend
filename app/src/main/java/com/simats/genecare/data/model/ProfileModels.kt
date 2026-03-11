@@ -8,7 +8,10 @@ data class ProfileUpdateRequest(
     @SerializedName("date_of_birth") val dateOfBirth: String,
     @SerializedName("gender") val gender: String,
     @SerializedName("phone") val phone: String,
-    @SerializedName("address") val address: String
+    @SerializedName("address") val address: String,
+    @SerializedName("height") val height: String = "",
+    @SerializedName("weight") val weight: String = "",
+    @SerializedName("blood_type") val bloodType: String = ""
 )
 
 data class ProfileUpdateResponse(

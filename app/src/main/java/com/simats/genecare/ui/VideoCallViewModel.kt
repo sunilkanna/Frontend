@@ -22,6 +22,7 @@ data class VideoCallState(
     val consultationFee: Double = 0.0,
     val jwt: String? = null,
     val medicalReportUrl: String? = null,
+    val patientReports: List<com.simats.genecare.data.model.SessionReport> = emptyList(),
     val errorMessage: String? = null
 )
 
@@ -57,11 +58,12 @@ class VideoCallViewModel : ViewModel() {
                         val jwtParam = if (!body.jwt.isNullOrEmpty()) "?jwt=${body.jwt}" else ""
                         _state.value = _state.value.copy(
                             isLoading = false,
-                            meetingLink = body.meetingLink + "$jwtParam#config.disableDeepLinking=true&config.prejoinPageEnabled=false&config.startWithAudioMuted=false&config.startWithVideoMuted=false&config.requireDisplayName=true",
+                            meetingLink = body.meetingLink + "$jwtParam#config.disableDeepLinking=true&config.prejoinPageEnabled=false&config.startWithAudioMuted=false&config.startWithVideoMuted=false&config.requireDisplayName=true&config.p2p.enabled=false&config.disableSelfView=false&interfaceConfig.TOOLBAR_BUTTONS=[]&config.toolbarButtons=[]&config.disableTileView=true&config.hideConferenceTimer=true&config.hideParticipantsStats=true&config.disableRemoteMute=true",
                             jwt = body.jwt,
                             counselorName = body.counselorName ?: "Doctor",
                             patientName = body.patientName ?: "Patient",
                             medicalReportUrl = body.medicalReportUrl,
+                            patientReports = body.patientReports ?: emptyList(),
                             callStatus = "Connected"
                         )
                         _callStatus.value = "Connected"

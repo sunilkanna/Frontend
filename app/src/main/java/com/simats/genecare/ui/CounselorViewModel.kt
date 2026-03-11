@@ -266,7 +266,8 @@ class CounselorViewModel : ViewModel() {
         val imageInitial: String?,
         val imageColor: Color,
         val hasReport: Boolean,
-        val reportUrl: String? = null
+        val reportUrl: String? = null,
+        val status: String? = null
     )
 
     private val _sessionRequests = MutableStateFlow<List<SessionRequest>>(emptyList())
@@ -280,6 +281,9 @@ class CounselorViewModel : ViewModel() {
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
+
+    private val _allAppointments = MutableStateFlow<List<SessionRequest>>(emptyList())
+    val allAppointments: StateFlow<List<SessionRequest>> = _allAppointments.asStateFlow()
 
     init {
         // Observe UserSession changes to automatically fetch data for the correct user
@@ -310,12 +314,8 @@ class CounselorViewModel : ViewModel() {
                 val response = authRepository.getCounselorAppointments(currentId)
                 if (response.isSuccessful && response.body()?.status == "success") {
                     val appointments = response.body()?.appointments ?: emptyList()
-                    // More robust filtering: handles null or empty as "Pending" for legacy data
-                    val filtered = appointments.filter { 
-                        it.status.isNullOrBlank() || it.status.equals("Pending", ignoreCase = true) 
-                    }
                     
-                    _sessionRequests.value = filtered.map {
+                    val mappedAppointments = appointments.map {
                         SessionRequest(
                             id = it.id.toString(),
                             name = it.patientName ?: "Unknown Patient",
@@ -326,8 +326,17 @@ class CounselorViewModel : ViewModel() {
                             imageInitial = it.imageInitial ?: "?",
                             imageColor = try { Color(android.graphics.Color.parseColor(it.imageColorHex ?: "#FFCC80")) } catch(e:Exception) { Color(0xFFFFCC80) },
                             hasReport = it.hasReport ?: false,
-                            reportUrl = it.reportUrl
+                            reportUrl = it.reportUrl,
+                            status = it.status // Passing status to SessionRequest
                         )
+                    }
+
+                    // Save all appointments for the "View All" screen
+                    _allAppointments.value = mappedAppointments
+
+                    // Filter only Pending appointments for the Dashboard's "Session Requests" list
+                    _sessionRequests.value = mappedAppointments.filter { 
+                        it.status.isNullOrBlank() || it.status.equals("Pending", ignoreCase = true) 
                     }
                 } else {
                     val errorMsg = response.body()?.message 

@@ -205,9 +205,9 @@ fun BookSessionScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Confirm Booking Button
+            val context = androidx.compose.ui.platform.LocalContext.current
             Button(
-                onClick = { viewModel.confirmBooking() },
+                onClick = { viewModel.confirmBooking(context) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),

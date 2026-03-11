@@ -85,16 +85,26 @@ fun SignInScreen(
                     
                     // Navigate based on backend user type
                     when (user.userType) {
-                        "Patient" -> navController.navigate("dashboard")
+                        "Patient" -> navController.navigate("dashboard") {
+                            popUpTo(0) { inclusive = true }
+                        }
                         "Counselor" -> {
                             if (user.verificationStatus == "Approved") {
-                                navController.navigate("counselor_dashboard")
+                                navController.navigate("counselor_dashboard") {
+                                    popUpTo(0) { inclusive = true }
+                                }
                             } else {
-                                navController.navigate("counselor_pending_dashboard")
+                                navController.navigate("counselor_pending_dashboard") {
+                                    popUpTo(0) { inclusive = true }
+                                }
                             }
                         }
-                        "Admin" -> navController.navigate("admin_dashboard")
-                        else -> navController.navigate("dashboard")
+                        "Admin" -> navController.navigate("admin_dashboard") {
+                            popUpTo(0) { inclusive = true }
+                        }
+                        else -> navController.navigate("dashboard") {
+                            popUpTo(0) { inclusive = true }
+                        }
                     }
                 } else {
                      Toast.makeText(context, "Login failed: No user data", Toast.LENGTH_SHORT).show()

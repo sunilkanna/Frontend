@@ -146,14 +146,20 @@ fun VideoCallScreen(navController: NavController, appointmentId: Int = 1) {
 
                             settings.javaScriptEnabled = true
                             settings.domStorageEnabled = true
+                            settings.databaseEnabled = true
                             settings.mediaPlaybackRequiresUserGesture = false
                             settings.allowContentAccess = true
-                            settings.cacheMode = WebSettings.LOAD_NO_CACHE
+                            settings.allowFileAccess = true
+                            settings.cacheMode = WebSettings.LOAD_DEFAULT
                             settings.javaScriptCanOpenWindowsAutomatically = true
                             settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                             settings.setSupportMultipleWindows(true)
+                            settings.useWideViewPort = true
+                            settings.loadWithOverviewMode = true
+                            settings.builtInZoomControls = false
+                            settings.displayZoomControls = false
                             
-                            android.util.Log.d("VideoCall", "Loading URL: ${state.meetingLink}")
+                            android.util.Log.d("VideoCall", "Initial WebView Factory Loading URL: ${state.meetingLink}")
                             
                             // Desktop User Agent to ensure Jitsi renders full interface
                             settings.userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
@@ -162,11 +168,11 @@ fun VideoCallScreen(navController: NavController, appointmentId: Int = 1) {
                                 override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
                                     if (url == null) return false
                                     // Block Jitsi from trying to open external app schemes (intent://, org.jitsi.meet://, etc.)
-                                    // CRITICAL: Must allow wss:// for WebRTC signaling
+                                    // CRITICAL: Must allow wss:// for WebRTC signaling and data:/blob: for internal Jitsi assets
                                     return if (url.startsWith("http://") || url.startsWith("https://") || 
                                                url.startsWith("ws://") || url.startsWith("wss://") ||
-                                               url.startsWith("blob:")) {
-                                        false // Allow web navigation
+                                               url.startsWith("blob:") || url.startsWith("data:")) {
+                                        false // Allow web navigation and internal assets
                                     } else {
                                         true // Block special schemes
                                     }
@@ -177,28 +183,42 @@ fun VideoCallScreen(navController: NavController, appointmentId: Int = 1) {
                             webChromeClient = object : WebChromeClient() {
                                 override fun onPermissionRequest(request: PermissionRequest?) {
                                     val requestedResources = request?.resources ?: emptyArray()
-                                    // Only grant if the Android OS has also granted us permissions
+                                    // For Jitsi to work correctly, we need to grant the resources it asks for
+                                    // if we have corresponding Android system permissions.
                                     val hasCamera = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
                                     val hasMic = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
                                     
                                     val filteredResources = mutableListOf<String>()
-                                    if (requestedResources.contains(PermissionRequest.RESOURCE_VIDEO_CAPTURE) && hasCamera) {
-                                        filteredResources.add(PermissionRequest.RESOURCE_VIDEO_CAPTURE)
-                                    }
-                                    if (requestedResources.contains(PermissionRequest.RESOURCE_AUDIO_CAPTURE) && hasMic) {
-                                        filteredResources.add(PermissionRequest.RESOURCE_AUDIO_CAPTURE)
+                                    requestedResources.forEach { resource ->
+                                        when (resource) {
+                                            PermissionRequest.RESOURCE_VIDEO_CAPTURE -> if (hasCamera) filteredResources.add(resource)
+                                            PermissionRequest.RESOURCE_AUDIO_CAPTURE -> if (hasMic) filteredResources.add(resource)
+                                            // Always allow these if requested
+                                            PermissionRequest.RESOURCE_PROTECTED_MEDIA_ID -> filteredResources.add(resource)
+                                            PermissionRequest.RESOURCE_MIDI_SYSEX -> filteredResources.add(resource)
+                                        }
                                     }
                                     
                                     if (filteredResources.isNotEmpty()) {
+                                        android.util.Log.d("VideoCall", "Granting WebView permissions: $filteredResources")
                                         request?.grant(filteredResources.toTypedArray())
                                     } else {
+                                        android.util.Log.d("VideoCall", "Denying WebView permissions for: ${requestedResources.toList()}")
                                         request?.deny()
                                     }
                                 }
                             }
 
                             webViewRef = this
-                            loadUrl(state.meetingLink!!)
+                            state.meetingLink?.let { loadUrl(it) }
+                        }
+                    },
+                    update = { view ->
+                        // Only load if current URL is completely different and not already loading Jitsi
+                        // This prevents internal Jitsi navigation from triggering a full reload
+                        if (view.url == null && state.meetingLink != null) {
+                            android.util.Log.d("VideoCall", "WebView Update block Loading URL: ${state.meetingLink}")
+                            view.loadUrl(state.meetingLink!!)
                         }
                     },
                     modifier = Modifier
@@ -296,23 +316,75 @@ fun VideoCallScreen(navController: NavController, appointmentId: Int = 1) {
 
                     // View Patient Report (Counselor Only)
                     val userType = com.simats.genecare.data.UserSession.getUserType()
-                    if (userType != "Patient" && !state.medicalReportUrl.isNullOrEmpty()) {
+                    var showReportsDialog by remember { mutableStateOf(false) }
+
+                    if (userType != "Patient" && state.patientReports.isNotEmpty()) {
                         Spacer(modifier = Modifier.width(20.dp))
                         IconButton(
-                            onClick = {
-                                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(state.medicalReportUrl))
-                                context.startActivity(intent)
-                            },
+                            onClick = { showReportsDialog = true },
                             modifier = Modifier
                                 .size(56.dp)
                                 .background(Color(0xFF00ACC1), CircleShape)
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.Description,
-                                contentDescription = "View Report",
+                                contentDescription = "View Reports",
                                 tint = Color.White
                             )
                         }
+                    }
+
+                    if (showReportsDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showReportsDialog = false },
+                            title = { Text("Patient Reports", fontWeight = FontWeight.Bold) },
+                            text = {
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    state.patientReports.forEach { report ->
+                                        Card(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 4.dp),
+                                            shape = RoundedCornerShape(8.dp),
+                                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F8E9)),
+                                            onClick = {
+                                                try {
+                                                    val reportUrl = report.fileUrl
+                                                    val absoluteUrl = when {
+                                                        reportUrl.startsWith("http") -> {
+                                                            reportUrl.replace("localhost", "172.20.10.2")
+                                                                     .replace("127.0.0.1", "172.20.10.2")
+                                                        }
+                                                        else -> "http://172.20.10.2/genecare/" + reportUrl.removePrefix("/")
+                                                    }
+                                                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(absoluteUrl))
+                                                    context.startActivity(intent)
+                                                } catch (e: Exception) {
+                                                    android.widget.Toast.makeText(context, "Error: ${e.localizedMessage}", android.widget.Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(12.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Icon(Icons.Filled.Description, contentDescription = null, tint = Color(0xFF2E7D32))
+                                                Spacer(modifier = Modifier.width(12.dp))
+                                                Column {
+                                                    Text(report.fileName, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                                    Text(report.uploadedAt, fontSize = 12.sp, color = Color.Gray)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            confirmButton = {
+                                TextButton(onClick = { showReportsDialog = false }) {
+                                    Text("Close", color = Color(0xFF00ACC1))
+                                }
+                            }
+                        )
                     }
                 }
             }

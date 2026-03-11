@@ -28,7 +28,8 @@ data class NoteItem(val date: String, val content: String)
 
 data class PatientDetailsState(
     val patient: PatientDetails? = null,
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    val errorMessage: String? = null
 )
 
 class PatientDetailsViewModel : ViewModel() {
@@ -39,42 +40,45 @@ class PatientDetailsViewModel : ViewModel() {
 
     fun loadPatient(patientId: String) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-            // Simulate network delay
-            // delay(500)
-            
-            // Dummy data generation based on ID (simplified for demo)
-            val dummyPatient = PatientDetails(
-                id = patientId,
-                name = "Emily Rodriguez", // We'd normally fetch real name by ID
-                age = 32,
-                gender = "Female",
-                email = "emily.rodriguez@example.com",
-                phone = "+1 (555) 123-4567",
-                address = "123 Maple Ave, Springfield",
-                bloodType = "A+",
-                height = "165 cm",
-                weight = "58 kg",
-                medicalHistory = listOf(
-                    "Family history of breast cancer (Mother, Aunt)",
-                    "Mild Asthma",
-                    "Allergic to Penicillin"
-                ),
-                geneticRisks = listOf(
-                    RiskItem("Breast Cancer (BRCA1)", "High"),
-                    RiskItem("Ovarian Cancer", "Moderate"),
-                    RiskItem("Lynch Syndrome", "Low")
-                ),
-                recentNotes = listOf(
-                    NoteItem("Feb 08, 2026", "Patient discussed improved diet plans."),
-                    NoteItem("Jan 15, 2026", "Initial consultation. Ordered BRCA panel.")
-                )
-            )
-
-            _uiState.value = PatientDetailsState(
-                patient = dummyPatient,
-                isLoading = false
-            )
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            try {
+                val response = repository.getPatientDetails(patientId.toInt())
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    if (body?.status == "success") {
+                        val p = body.patient
+                        if (p != null) {
+                            val details = PatientDetails(
+                                id = p.id.toString(),
+                                name = p.name ?: "Unknown",
+                                age = p.age ?: 0,
+                                gender = p.gender ?: "Unknown",
+                                email = p.email ?: "",
+                                phone = p.phone ?: "",
+                                address = p.address ?: "",
+                                bloodType = p.bloodType ?: "N/A",
+                                height = p.height ?: "N/A",
+                                weight = p.weight ?: "N/A",
+                                medicalHistory = p.medicalHistory?.map { it.conditionName } ?: emptyList(),
+                                geneticRisks = p.geneticRisks?.map { 
+                                    RiskItem(it.category, "Assessed: ${it.assessedAt}")
+                                 } ?: emptyList(),
+                                recentNotes = emptyList()
+                            )
+                            _uiState.value = PatientDetailsState(patient = details, isLoading = false)
+                        } else {
+                            _uiState.value = PatientDetailsState(errorMessage = "Patient data is missing", isLoading = false)
+                        }
+                    } else {
+                        _uiState.value = PatientDetailsState(errorMessage = body?.message ?: "Failed to load patient profile", isLoading = false)
+                    }
+                } else {
+                    _uiState.value = PatientDetailsState(errorMessage = "Server error: ${response.code()}", isLoading = false)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _uiState.value = PatientDetailsState(errorMessage = "Connection error: ${e.message}", isLoading = false)
+            }
         }
     }
 

@@ -41,7 +41,7 @@ fun CounselorReportsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("My Reports", fontWeight = FontWeight.Bold, color = Color.White) },
+                title = { Text("Patient Reports", fontWeight = FontWeight.Bold, color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
@@ -52,22 +52,28 @@ fun CounselorReportsScreen(
                 ),
                 modifier = Modifier.background(
                     brush = Brush.verticalGradient(
-                        colors = listOf(Color(0xFF009688), Color(0xFF00796B))
+                        colors = listOf(Color(0xFF673AB7), Color(0xFF512DA8)) // Unified Purple/Deep Purple
                     )
                 )
             )
         },
         containerColor = Color(0xFFF5F7FA)
     ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            items(reports) { report ->
-                CounselorReportCard(report)
+        if (reports.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                Text("No reports found", color = Color.Gray)
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                items(reports) { report ->
+                    CounselorReportCard(report)
+                }
             }
         }
     }
@@ -75,6 +81,7 @@ fun CounselorReportsScreen(
 
 @Composable
 fun CounselorReportCard(report: CounselorReportItem) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     Card(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -91,13 +98,13 @@ fun CounselorReportCard(report: CounselorReportItem) {
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFE0F2F1)),
+                    .background(Color(0xFFF3E5F5)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Default.Description,
                     contentDescription = null,
-                    tint = Color(0xFF009688)
+                    tint = Color(0xFF9C27B0)
                 )
             }
             
@@ -113,8 +120,44 @@ fun CounselorReportCard(report: CounselorReportItem) {
                 )
             }
             
-            IconButton(onClick = { /* Download */ }) {
-                Icon(Icons.Default.Download, contentDescription = "Download", tint = Color.Gray)
+            IconButton(onClick = { 
+                try {
+                    val reportUrl = report.fileUrl
+                    if (reportUrl.isNullOrEmpty()) {
+                        android.widget.Toast.makeText(context, "No file URL available", android.widget.Toast.LENGTH_SHORT).show()
+                        return@IconButton
+                    }
+
+                    // Base URL for the API
+                    val baseUrl = "http://172.20.10.2/genecare/"
+                    
+                    var absoluteUrl = when {
+                        reportUrl.startsWith("http") -> {
+                            reportUrl.replace("localhost", "172.20.10.2")
+                                     .replace("127.0.0.1", "172.20.10.2")
+                        }
+                        reportUrl.contains("view_report.php") -> {
+                             baseUrl + reportUrl.substringAfter("genecare/").removePrefix("/")
+                        }
+                        else -> {
+                            // If it's a relative path like "uploads/xyz.pdf" or "xyz.pdf"
+                            val fileName = reportUrl.substringAfterLast("/")
+                            baseUrl + "view_report.php?file=" + java.net.URLEncoder.encode(fileName, "UTF-8")
+                        }
+                    }
+
+                    // Append download parameter if not present
+                    if (!absoluteUrl.contains("download=1")) {
+                        absoluteUrl += if (absoluteUrl.contains("?")) "&download=1" else "?download=1"
+                    }
+
+                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(absoluteUrl))
+                    context.startActivity(intent)
+                } catch (e: Exception) {
+                    android.widget.Toast.makeText(context, "Error opening report: ${e.localizedMessage}", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }) {
+                Icon(Icons.Default.Download, contentDescription = "Download", tint = Color(0xFF9C27B0))
             }
         }
     }

@@ -270,6 +270,11 @@ interface GeneCareApi {
         @Body request: com.simats.genecare.data.model.MarkReadRequest
     ): Response<GenericResponse>
 
+    @POST("delete_notification.php")
+    suspend fun deleteNotification(
+        @Body request: com.simats.genecare.data.model.DeleteNotificationRequest
+    ): Response<GenericResponse>
+
     @GET("get_system_settings.php")
     suspend fun getSystemSettings(): Response<com.simats.genecare.data.model.SystemSettingsResponse>
 
@@ -277,4 +282,9 @@ interface GeneCareApi {
     suspend fun updateSystemSetting(
         @Body request: com.simats.genecare.data.model.UpdateSystemSettingRequest
     ): Response<GenericResponse>
+
+    @GET("get_patient_details.php")
+    suspend fun getPatientDetails(
+        @retrofit2.http.Query("patient_id") patientId: Int
+    ): Response<com.simats.genecare.data.model.GetPatientDetailsResponse>
 }

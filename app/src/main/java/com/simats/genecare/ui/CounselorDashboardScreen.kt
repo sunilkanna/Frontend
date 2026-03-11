@@ -39,6 +39,8 @@ import com.simats.genecare.data.UserSession
 
 import androidx.compose.runtime.*
 import androidx.lifecycle.viewmodel.compose.viewModel
+import android.app.Activity
+import androidx.activity.compose.BackHandler
 
 @Composable
 fun CounselorDashboardScreen(
@@ -46,8 +48,13 @@ fun CounselorDashboardScreen(
     onSignOut: () -> Unit = {},
     viewModel: DashboardViewModel = viewModel()
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     val user = UserSession.getUser()
+
+    BackHandler {
+        (context as? Activity)?.finish()
+    }
 
     Scaffold(
         containerColor = Color(0xFFF8F9FE) // Soft off-white background
@@ -75,7 +82,7 @@ fun CounselorDashboardScreen(
                     item {
                         TodaysSchedule(
                             appointments = stats?.todayAppointments ?: emptyList(),
-                            onViewAllClick = { /* TODO */ },
+                            onViewAllClick = { navController.navigate("counselor_appointments") },
                             onStartClick = { appointmentId -> navController.navigate("video_call/$appointmentId") }
                         )
                         Spacer(modifier = Modifier.height(24.dp))
@@ -87,11 +94,6 @@ fun CounselorDashboardScreen(
                         Spacer(modifier = Modifier.height(24.dp))
                     }
 
-                    // Weekly Summary
-                    item {
-                        WeeklySummaryCard()
-                        Spacer(modifier = Modifier.height(24.dp))
-                    }
                     
                     // Recent Reviews
                     item {
@@ -399,7 +401,7 @@ fun QuickActionsSection(navController: NavController, pendingCount: Int = 0) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             QuickActionCard(
                 icon = Icons.Outlined.PieChart, 
-                label = "Reports", 
+                label = "Patient\nReports", 
                 bgColor = Color(0xFFF3E5F5), // Light purple
                 iconColor = Color(0xFF9C27B0), // Purple
                 modifier = Modifier.weight(1f), 
@@ -492,51 +494,6 @@ fun QuickActionCard(
     }
 }
 
-@Composable
-fun WeeklySummaryCard() {
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFE8EAF6)), // Light indigo background
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                @Suppress("DEPRECATION")
-                Icon(Icons.Outlined.TrendingUp, contentDescription = null, tint = Color(0xFF3F51B5))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("This Week Summary", fontWeight = FontWeight.Bold, color = Color(0xFF1A237E))
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            SummaryRow("Sessions Completed", "24")
-            Spacer(modifier = Modifier.height(8.dp))
-            SummaryRow("New Patients", "8")
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("Revenue", color = Color(0xFF7986CB), style = MaterialTheme.typography.bodyMedium)
-                Text("₹18,400", fontWeight = FontWeight.Bold, color = Color(0xFF43A047)) // Green for money
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            SummaryRow("Avg. Session Time", "52 min")
-        }
-    }
-}
-
-@Composable
-fun SummaryRow(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(label, color = Color(0xFF7986CB), style = MaterialTheme.typography.bodyMedium)
-        Text(value, fontWeight = FontWeight.Bold, color = Color(0xFF1A237E))
-    }
-}
 
 @Composable
 fun RecentReviewsSection(reviews: List<com.simats.genecare.data.model.ReviewData>) {

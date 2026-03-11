@@ -10,7 +10,7 @@ object ApiClient {
     // REPLACE WITH YOUR COMPUTER'S LOCAL IP ADDRESS
     // For Emulator use "http://10.0.2.2/genecare/"
     // For Physical Device use your machine's IP, e.g., "http://10.164.172.174/genecare/"
-    private const val BASE_URL = "http://10.63.65.90/genecare/"
+    private const val BASE_URL = "http://172.20.10.2/genecare/"
 
     private val logging = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY

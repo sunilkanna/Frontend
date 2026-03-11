@@ -179,8 +179,17 @@ fun NavGraph(startDestination: String = "splash") {
             val appointmentId = backStackEntry.arguments?.getInt("appointmentId") ?: 0
             SessionFeedbackScreen(navController = navController, appointmentId = appointmentId)
         }
-        composable("user_management") {
-            com.simats.genecare.ui.UserManagementScreen(navController = navController)
+        composable(
+            "user_management/{roleFilter}",
+            arguments = listOf(
+                androidx.navigation.navArgument("roleFilter") {
+                    type = androidx.navigation.NavType.StringType
+                    defaultValue = "all"
+                }
+            )
+        ) { backStackEntry ->
+            val roleFilter = backStackEntry.arguments?.getString("roleFilter") ?: "all"
+            com.simats.genecare.ui.UserManagementScreen(navController = navController, roleFilter = roleFilter)
         }
         composable("system_settings") {
             com.simats.genecare.ui.SystemSettingsScreen(navController = navController)
@@ -223,6 +232,12 @@ fun NavGraph(startDestination: String = "splash") {
         }
         composable("counselor_edit_profile") {
             com.simats.genecare.ui.CounselorEditProfileScreen(navController = navController)
+        }
+        composable("patient_edit_profile") {
+            com.simats.genecare.ui.PatientEditProfileScreen(navController = navController)
+        }
+        composable("counselor_appointments") {
+            com.simats.genecare.ui.CounselorAppointmentsScreen(navController = navController, viewModel = counselorViewModel)
         }
     }
 }

@@ -124,4 +124,8 @@ class AuthRepository {
     suspend fun updateSystemSetting(key: String, value: String): Response<GenericResponse> {
         return api.updateSystemSetting(com.simats.genecare.data.model.UpdateSystemSettingRequest(key, value))
     }
+
+    suspend fun getPatientDetails(patientId: Int): Response<com.simats.genecare.data.model.GetPatientDetailsResponse> {
+        return api.getPatientDetails(patientId)
+    }
 }

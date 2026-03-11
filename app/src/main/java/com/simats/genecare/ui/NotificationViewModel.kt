@@ -74,6 +74,30 @@ class NotificationViewModel : ViewModel() {
         }
     }
 
+    fun deleteNotification(notificationId: String) {
+        viewModelScope.launch {
+            try {
+                // Optimistically update UI
+                val currentList = _notifications.value
+                _notifications.value = currentList.filter { it.id != notificationId }
+
+                val response = ApiClient.api.deleteNotification(
+                    com.simats.genecare.data.model.DeleteNotificationRequest(notificationId.toInt())
+                )
+                if (!response.isSuccessful || response.body()?.status != "success") {
+                    // Rollback if failed
+                    _notifications.value = currentList
+                    _errorMessage.value = response.body()?.message ?: "Failed to delete"
+                }
+            } catch (e: Exception) {
+                // Rollback on connection error
+                // In a real app we might want to fetch again
+                fetchNotifications()
+                _errorMessage.value = "Connection error: ${e.message}"
+            }
+        }
+    }
+
     private fun mapType(backendType: String): NotificationType {
         return when (backendType) {
             "Appointment" -> NotificationType.SESSION_REMINDER

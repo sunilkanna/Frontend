@@ -111,6 +111,17 @@ fun AppointmentDetailsScreen(
                     date = displayDate,
                     time = displayTime
                 )
+            } else if (uiState.isLoadingStatus) {
+                // Show a loading placeholder for the card
+                Card(
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    modifier = Modifier.fillMaxWidth().height(120.dp)
+                ) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = Color(0xFF00ACC1), modifier = Modifier.size(32.dp))
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))

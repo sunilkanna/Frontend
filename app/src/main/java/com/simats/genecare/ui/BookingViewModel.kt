@@ -335,7 +335,16 @@ class BookingViewModel(
                     val isConfirmed = details.status.equals("Confirmed", ignoreCase = true)
                     
                     // Crucial: Find the actual counselor object from our list and set it
-                    val counselor = _uiState.value.counselors.find { it.id == details.counselorId.toString() }
+                    val counselor = _uiState.value.counselors.find { it.id == details.counselorId.toString() } ?: details.counselorName?.let { name ->
+                         Counselor(
+                             id = details.counselorId.toString(),
+                             name = name,
+                             specialty = "Genetic Counselor",
+                             rating = 0.0,
+                             initials = repository.getInitials(name),
+                             colorHex = repository.getColorForUser(details.counselorId)
+                         )
+                    }
                     
                     _uiState.value = _uiState.value.copy(
                         isSessionApproved = isConfirmed,
@@ -345,7 +354,6 @@ class BookingViewModel(
                         confirmedCounselorName = details.counselorName,
                         selectedCounselor = counselor, // Update the counselor object for consistent UI (initials, color)
                         isLoadingStatus = false
-                        // isBookingConfirmed = true // REMOVED: This was causing navigation loops on screen refresh
                     )
                 } else {
                     _uiState.value = _uiState.value.copy(isLoadingStatus = false)
@@ -389,7 +397,7 @@ class BookingViewModel(
             _uiState.value = BookingUiState(
                  counselors = counselorList,
                  timeSlots = repository.getTimeSlots(),
-                 selectedCounselor = counselorList.firstOrNull(),
+                 selectedCounselor = null,
                  todayYear = year,
                  todayMonth = month,
                  todayDay = day,

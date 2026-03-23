@@ -69,18 +69,9 @@ foreach ($appointments as $appt) {
         $email_sent = false;
         $email_error = null;
         if (!empty($patient_email)) {
+            require_once 'mailer_utils.php';
             try {
-                $p_email = escapeshellarg($patient_email);
-                $p_name = escapeshellarg($patient_name);
-                $c_name = escapeshellarg($counselor_name);
-                $a_date = escapeshellarg($date_str);
-                $a_time = escapeshellarg($time_str);
-                $m_link = escapeshellarg($appt['meeting_link'] ?? '');
-
-                $script_path = __DIR__ . DIRECTORY_SEPARATOR . "send_reminder_email.py";
-                // Execute in background
-                exec("start /B python \"$script_path\" $p_email $p_name $c_name $a_date $a_time $m_link > NUL 2>&1");
-                $email_sent = true; 
+                $email_sent = sendReminderEmail($patient_email, $patient_name, $counselor_name, $date_str, $time_str, $appt['meeting_link'] ?? '');
             } catch (Exception $e) {
                 $email_error = $e->getMessage();
             }

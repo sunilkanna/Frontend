@@ -93,29 +93,13 @@ try {
             $appt_date = $appt_data['appointment_date'];
             $appt_time = $appt_data['time_slot'];
 
-            $p_email = escapeshellarg($patient_email);
-            $p_name = escapeshellarg($patient_name);
-            $c_name = escapeshellarg($counselor_name);
-            $a_date = escapeshellarg($appt_date);
-            $a_time = escapeshellarg($appt_time);
+            require_once 'mailer_utils.php';
 
             try {
                 if ($status === 'Confirmed' && $meeting_link) {
-                    $m_link = escapeshellarg($meeting_link);
-                    $script_path = __DIR__ . DIRECTORY_SEPARATOR . "send_confirmation_email.py";
-                    
-                    // Windows background execution: start /B ...
-                    $command = "start /B python \"$script_path\" $p_email $p_name $c_name $a_date $a_time $m_link > NUL 2>&1";
-                    pclose(popen($command, "r"));
-                    $email_sent = true;
+                    $email_sent = sendConfirmationEmail($patient_email, $patient_name, $counselor_name, $appt_date, $appt_time, $meeting_link);
                 } elseif ($status === 'Cancelled' && $rejection_reason) {
-                    $r_reason = escapeshellarg($rejection_reason);
-                    $script_path = __DIR__ . DIRECTORY_SEPARATOR . "send_rejection_email.py";
-                    
-                    // Windows background execution: start /B ...
-                    $command = "start /B python \"$script_path\" $p_email $p_name $c_name $a_date $a_time $r_reason > NUL 2>&1";
-                    pclose(popen($command, "r"));
-                    $email_sent = true;
+                    $email_sent = sendRejectionEmail($patient_email, $patient_name, $counselor_name, $appt_date, $appt_time, $rejection_reason);
                 }
             } catch (Exception $e) {
                 $email_error = $e->getMessage();

@@ -117,7 +117,7 @@ class BookingRepository {
         }
     }
 
-    private fun getInitials(name: String): String {
+    fun getInitials(name: String): String {
         return name.split(" ")
             .filter { it.isNotEmpty() }
             .take(2)
@@ -126,7 +126,7 @@ class BookingRepository {
             .uppercase()
     }
 
-    private fun getColorForUser(id: Int): Long {
+    fun getColorForUser(id: Int): Long {
         val colors = listOf(0xFF00ACC1, 0xFF00BFA5, 0xFF00BDD6, 0xFF7E57C2, 0xFF5C6BC0, 0xFFEC407A)
         return colors[id % colors.size]
     }
